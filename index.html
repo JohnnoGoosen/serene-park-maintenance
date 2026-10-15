@@ -8,39 +8,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome for accessible icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Firebase SDKs -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-        // Serene Park Retirement Centre Live Firebase Configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyDExSKwrq2ZUKVoXMh1wRBA1jXne5cbQt8",
-            authDomain: "fir-p-r-c-maintenance-app.firebaseapp.com",
-            projectId: "fir-p-r-c-maintenance-app",
-            storageBucket: "fir-p-r-c-maintenance-app.firebasestorage.app",
-            messagingSenderId: "487761719426",
-            appId: "1:487761719426:web:df2a4b023e699e69d4449b"
-        };
-
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
-        // Expose Firebase variables globally for the application
-        window.db = db;
-        window.collection = collection;
-        window.addDoc = addDoc;
-        window.getDocs = getDocs;
-        window.doc = doc;
-        window.updateDoc = updateDoc;
-        window.deleteDoc = deleteDoc;
-        window.onSnapshot = onSnapshot;
-        window.query = query;
-        window.orderBy = orderBy;
-
-        window.initFirebaseListener();
-    </script>
     <style>
         .large-text { font-size: 1.125rem; }
         .bg-teal-brand { background-color: #55c4d0; }
@@ -78,8 +45,8 @@
     <div id="toast" class="fixed top-4 right-4 z-50 hidden max-w-md bg-teal-600 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center space-x-4 border-2 border-teal-300 transition-all duration-300">
         <i class="fa-solid fa-circle-check text-2xl"></i>
         <div>
-            <h4 class="font-bold text-lg">Notification Sent</h4>
-            <p id="toast-msg" class="text-sm opacity-95">Staff member has been notified successfully.</p>
+            <h4 class="font-bold text-lg">Notification</h4>
+            <p id="toast-msg" class="text-sm opacity-95">Action completed successfully.</p>
         </div>
     </div>
 
@@ -88,7 +55,7 @@
         <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
             <div class="flex items-center space-x-4">
                 <div class="bg-white p-2 rounded-2xl shadow-md border-2 border-teal-brand">
-                    <!-- Inline SVG Serene Park Bird Logo -->
+                    <!-- Serene Park Bird Logo -->
                     <svg class="w-12 h-12" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <circle cx="50" cy="50" r="42" stroke="#3f6873" stroke-width="10" opacity="0.3"/>
                         <path d="M20 65 C 30 85, 70 85, 80 65 C 65 75, 35 75, 20 65 Z" fill="#55c4d0"/>
@@ -184,4 +151,626 @@
                 <!-- Upload Photo/s -->
                 <div>
                     <label class="block text-slate-700 font-bold mb-2 large-text" for="photos">Upload Photo/s (Optional):</label>
-                    <input type="file" id="photos" accept="image/*" multiple onchange="previewImages(event)" class="w-full px-4 py-3 rounded-
+                    <input type="file" id="photos" accept="image/*" multiple onchange="previewImages(event)" class="w-full px-4 py-3 rounded-xl border-2 border-slate-300 bg-slate-50 large-text file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-teal-100 file:text-teal-800 hover:file:bg-teal-200 cursor-pointer">
+                    <div id="image-preview-container" class="flex flex-wrap gap-3 mt-3"></div>
+                </div>
+
+                <button type="submit" class="w-full bg-slate-brand hover:bg-slate-700 text-white font-bold py-4 px-6 rounded-2xl shadow-lg transition text-xl flex items-center justify-center space-x-3 border-b-4 border-teal-brand">
+                    <i class="fa-solid fa-paper-plane"></i>
+                    <span>Submit Repair Request</span>
+                </button>
+            </form>
+        </section>
+
+        <!-- STAFF DASHBOARD VIEW -->
+        <section id="view-staff" class="hidden space-y-6">
+            <div class="bg-white rounded-3xl shadow-xl p-6 md:p-8 border border-teal-100">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-teal-100 pb-5 mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-slate-brand flex items-center space-x-3">
+                            <i class="fa-solid fa-calendar-days text-teal-brand"></i>
+                            <span>Staff Dashboard & Reports</span>
+                        </h2>
+                        <p class="text-slate-600 mt-1 large-text">Manage live requests, schedule tasks, and print Daily/Weekly/Monthly/YTD reports.</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <button onclick="openReportModal()" class="bg-teal-600 hover:bg-teal-700 text-white font-bold px-4 py-2.5 rounded-xl text-sm flex items-center space-x-2 transition shadow">
+                            <i class="fa-solid fa-print"></i>
+                            <span>Print Reports</span>
+                        </button>
+                        <button onclick="lockStaffDashboard()" class="bg-red-100 hover:bg-red-200 text-red-700 font-bold px-3 py-2.5 rounded-xl text-sm flex items-center space-x-1 transition border border-red-300" title="Lock Dashboard">
+                            <i class="fa-solid fa-lock"></i>
+                            <span>Lock</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filter Bar -->
+                <div class="flex items-center space-x-2 bg-cyan-50 p-3 rounded-xl border border-teal-200 mb-6">
+                    <span class="font-bold text-slate-brand text-sm px-2">Filter Requests:</span>
+                    <select id="status-filter" onchange="renderRequests()" class="bg-white px-3 py-1.5 rounded-lg border border-teal-300 text-sm font-semibold text-slate-brand focus:outline-none">
+                        <option value="All">All Requests</option>
+                        <option value="Pending" selected>Pending</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Completed">Completed</option>
+                    </select>
+                </div>
+
+                <!-- Requests List -->
+                <div id="requests-container" class="space-y-4">
+                    <!-- Dynamic cards inserted here -->
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Staff PIN Access Modal -->
+    <div id="pinModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 md:p-8 space-y-6 border border-teal-100">
+            <div class="text-center">
+                <div class="w-16 h-16 bg-teal-100 text-teal-700 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">
+                    <i class="fa-solid fa-lock"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-slate-brand">Staff Passcode Required</h3>
+                <p class="text-slate-600 text-sm mt-1">Please enter the staff PIN to access the dashboard.</p>
+            </div>
+            <div>
+                <input type="password" id="pin-input" maxlength="4" placeholder="Enter PIN (1967)" class="w-full text-center text-3xl font-bold tracking-widest px-4 py-3 rounded-2xl border-2 border-slate-300 focus:border-teal-brand focus:outline-none bg-slate-50">
+                <p id="pin-error" class="text-red-500 text-sm font-semibold text-center mt-2 hidden">Incorrect PIN. Please try again.</p>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="closePinModal()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 rounded-xl transition">Cancel</button>
+                <button onclick="verifyPin()" class="w-full bg-slate-brand hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition shadow">Unlock</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Modal -->
+    <div id="reportModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div id="print-report-modal" class="bg-white rounded-3xl shadow-2xl max-w-3xl w-full p-6 md:p-8 space-y-6 border border-teal-100 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b pb-4">
+                <h3 class="text-2xl font-bold text-slate-brand flex items-center space-x-2">
+                    <i class="fa-solid fa-file-lines text-teal-brand"></i>
+                    <span>Maintenance & Operations Report</span>
+                </h3>
+                <button onclick="closeReportModal()" class="text-slate-400 hover:text-slate-600 text-2xl font-bold no-print">&times;</button>
+            </div>
+            
+            <div class="flex flex-wrap items-center gap-4 no-print bg-cyan-50 p-4 rounded-xl border border-teal-200">
+                <span class="font-bold text-slate-700">Select Report Period:</span>
+                <select id="report-period" onchange="generateReport()" class="bg-white border-2 border-teal-300 rounded-xl px-4 py-2 font-bold text-slate-800 focus:outline-none">
+                    <option value="Daily">Daily Report (Today)</option>
+                    <option value="Weekly">Weekly Report (Last 7 Days)</option>
+                    <option value="Monthly">Monthly Report (Last 30 Days)</option>
+                    <option value="YTD" selected>Year-to-Date (YTD 2026)</option>
+                </select>
+                <button onclick="window.print()" class="bg-slate-brand hover:bg-slate-700 text-white font-bold px-5 py-2 rounded-xl transition flex items-center space-x-2 ml-auto">
+                    <i class="fa-solid fa-print"></i>
+                    <span>Print / Save PDF</span>
+                </button>
+            </div>
+
+            <div id="report-content" class="space-y-6 pt-2">
+                <!-- Dynamic Report Content -->
+            </div>
+
+            <button onclick="closeReportModal()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 rounded-xl transition no-print">Close Window</button>
+        </div>
+    </div>
+
+    <!-- Share Modal -->
+    <div id="shareModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-6 md:p-8 space-y-6 border border-teal-100">
+            <div class="flex justify-between items-center border-b pb-4">
+                <h3 class="text-2xl font-bold text-slate-brand flex items-center space-x-2">
+                    <i class="fa-solid fa-share-nodes text-teal-brand"></i>
+                    <span>Share Maintenance Portal</span>
+                </h3>
+                <button onclick="closeShareModal()" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
+            </div>
+            <p class="text-slate-600 large-text">Share this portal link with Serene Park residents, family members, or staff:</p>
+            <div class="flex items-center space-x-2">
+                <input type="text" id="share-link" readonly class="w-full bg-slate-100 border-2 border-slate-300 rounded-xl px-4 py-3 text-slate-700 font-mono text-sm" value="">
+                <button onclick="copyShareLink()" class="bg-slate-brand hover:bg-slate-700 text-white font-bold px-5 py-3 rounded-xl shadow transition">Copy</button>
+            </div>
+            <div class="grid grid-cols-2 gap-4 pt-2">
+                <a id="whatsapp-share" href="#" target="_blank" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl text-center flex items-center justify-center space-x-2 transition">
+                    <i class="fa-brands fa-whatsapp text-xl"></i>
+                    <span>WhatsApp</span>
+                </a>
+                <a id="email-share" href="#" class="bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 px-4 rounded-xl text-center flex items-center justify-center space-x-2 transition">
+                    <i class="fa-solid fa-envelope text-xl"></i>
+                    <span>Email Link</span>
+                </a>
+            </div>
+            <button onclick="closeShareModal()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 rounded-xl transition">Close</button>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-slate-brand text-cyan-100 py-6 px-6 mt-auto text-center border-t-2 border-teal-brand">
+        <p class="text-sm md:text-base">&copy; 2026 Serene Park Retirement Centre. All rights reserved. Cloud Real-Time Enabled.</p>
+    </footer>
+
+    <!-- Firebase & Application Logic -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, doc, updateDoc, deleteDoc, onSnapshot, query } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDExSKwrq2ZUKVoXMh1wRBA1jXne5cbQt8",
+            authDomain: "fir-p-r-c-maintenance-app.firebaseapp.com",
+            projectId: "fir-p-r-c-maintenance-app",
+            storageBucket: "fir-p-r-c-maintenance-app.firebasestorage.app",
+            messagingSenderId: "487761719426",
+            appId: "1:487761719426:web:df2a4b023e699e69d4449b"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const STAFF_PIN = "1967";
+        let isStaffUnlocked = false;
+
+        const staffDirectory = {
+            "Vusi": "+27000000001",
+            "Lucas": "+27000000002",
+            "Themba": "+27000000003",
+            "Solomon": "+27000000004",
+            "Elias": "+27000000005",
+            "Ernest": "+27000000006",
+            "Rackson": "+27000000007"
+        };
+
+        const maintenanceStaff = ["Vusi", "Lucas", "Themba"];
+        const gardenStaff = ["Solomon", "Elias", "Ernest", "Rackson"];
+
+        let requests = [];
+        let currentImagePreviews = [];
+
+        // Real-time Firestore Listener
+        function initFirebaseListener() {
+            try {
+                const q = query(collection(db, "maintenance_requests"));
+                onSnapshot(q, (snapshot) => {
+                    requests = [];
+                    snapshot.forEach((docSnap) => {
+                        requests.push({ id: docSnap.id, ...docSnap.data() });
+                    });
+                    requests.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+                    
+                    const staffView = document.getElementById('view-staff');
+                    if (staffView && !staffView.classList.contains('hidden')) {
+                        renderRequests();
+                    }
+                    updateBadgeCount();
+                }, (error) => {
+                    console.error("Firestore access error: ", error);
+                });
+            } catch (err) {
+                console.error("Listener initialization error: ", err);
+            }
+        }
+
+        function updateBadgeCount() {
+            const pendingCount = requests.filter(r => r.status === 'Pending').length;
+            const badge = document.getElementById('pending-badge');
+            if (badge) badge.innerText = pendingCount;
+        }
+
+        // Navigation & PIN Modal Logic
+        window.promptStaffAccess = function() {
+            if (isStaffUnlocked) {
+                switchTab('staff');
+                return;
+            }
+            document.getElementById('pin-input').value = '';
+            document.getElementById('pin-error').classList.add('hidden');
+            document.getElementById('pinModal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('pin-input').focus(), 100);
+        };
+
+        window.closePinModal = function() {
+            document.getElementById('pinModal').classList.add('hidden');
+        };
+
+        window.verifyPin = function() {
+            const enteredPin = document.getElementById('pin-input').value;
+            if (enteredPin === STAFF_PIN) {
+                isStaffUnlocked = true;
+                closePinModal();
+                switchTab('staff');
+                showToast("Staff Dashboard unlocked successfully.");
+            } else {
+                document.getElementById('pin-error').classList.remove('hidden');
+            }
+        };
+
+        // Handle Enter key on PIN input
+        document.getElementById('pin-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') verifyPin();
+        });
+
+        window.lockStaffDashboard = function() {
+            isStaffUnlocked = false;
+            switchTab('resident');
+            showToast("Staff dashboard locked.");
+        };
+
+        window.switchTab = function(tab) {
+            const residentView = document.getElementById('view-resident');
+            const staffView = document.getElementById('view-staff');
+            const navResident = document.getElementById('nav-resident');
+            const navStaff = document.getElementById('nav-staff');
+
+            if (tab === 'resident') {
+                residentView.classList.remove('hidden');
+                staffView.classList.add('hidden');
+                navResident.className = "px-6 py-3 rounded-xl font-bold text-lg transition flex items-center space-x-2 bg-slate-brand text-white shadow";
+                navStaff.className = "px-6 py-3 rounded-xl font-bold text-lg transition flex items-center space-x-2 bg-slate-100 text-slate-600 hover:bg-slate-200 border-2 border-dashed border-slate-300";
+            } else {
+                if (!isStaffUnlocked) {
+                    promptStaffAccess();
+                    return;
+                }
+                residentView.classList.add('hidden');
+                staffView.classList.remove('hidden');
+                navStaff.className = "px-6 py-3 rounded-xl font-bold text-lg transition flex items-center space-x-2 bg-slate-brand text-white shadow";
+                navResident.className = "px-6 py-3 rounded-xl font-bold text-lg transition flex items-center space-x-2 bg-slate-100 text-slate-600 hover:bg-slate-200 border-2 border-dashed border-slate-300";
+                renderRequests();
+            }
+        };
+
+        window.previewImages = function(event) {
+            const files = event.target.files;
+            const container = document.getElementById('image-preview-container');
+            container.innerHTML = '';
+            currentImagePreviews = [];
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    currentImagePreviews.push(e.target.result);
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.className = "w-20 h-20 object-cover rounded-xl border-2 border-teal-brand shadow";
+                    container.appendChild(img);
+                }
+                reader.readAsDataURL(file);
+            }
+        };
+
+        window.submitRequest = async function(event) {
+            event.preventDefault();
+            const now = new Date();
+            const dateStr = now.toISOString().slice(0, 10) + ' ' + now.toTimeString().slice(0, 5);
+
+            const categoryVal = document.getElementById('category').value;
+            let defaultStaff = categoryVal === "Gardens" ? "Solomon" : "Vusi";
+            let defaultDate = now.toISOString().slice(0, 10);
+
+            const newReq = {
+                resident: document.getElementById('resident-name').value,
+                room: document.getElementById('room-number').value,
+                category: categoryVal,
+                urgency: document.getElementById('urgency').value,
+                description: document.getElementById('description').value,
+                photos: [...currentImagePreviews],
+                status: "Pending",
+                assignedStaff: defaultStaff,
+                scheduledDate: defaultDate,
+                timeSlot: "Morning (08:00 - 12:00)",
+                date: dateStr,
+                timestamp: Date.now()
+            };
+
+            try {
+                await addDoc(collection(db, "maintenance_requests"), newReq);
+                showToast("Repair request submitted successfully!");
+                document.getElementById('maintenance-form').reset();
+                document.getElementById('image-preview-container').innerHTML = '';
+                currentImagePreviews = [];
+            } catch (error) {
+                console.error("Error adding document: ", error);
+                alert("Error submitting request. Please check your Firebase console permissions.");
+            }
+        };
+
+        window.updateStatus = async function(id, newStatus) {
+            try {
+                const docRef = doc(db, "maintenance_requests", id);
+                await updateDoc(docRef, { status: newStatus });
+                showToast(`Status updated to "${newStatus}".`);
+            } catch (error) {
+                console.error("Error updating status: ", error);
+            }
+        };
+
+        window.updateAssignedStaff = async function(id, staffName) {
+            try {
+                const docRef = doc(db, "maintenance_requests", id);
+                await updateDoc(docRef, { assignedStaff: staffName });
+                showToast(`Task allocated to ${staffName}.`);
+            } catch (error) {
+                console.error("Error updating staff: ", error);
+            }
+        };
+
+        window.updateScheduledDate = async function(id, dateVal) {
+            try {
+                const docRef = doc(db, "maintenance_requests", id);
+                await updateDoc(docRef, { scheduledDate: dateVal });
+                showToast("Schedule date updated.");
+            } catch (error) {
+                console.error("Error updating date: ", error);
+            }
+        };
+
+        window.updateTimeSlot = async function(id, slotVal) {
+            try {
+                const docRef = doc(db, "maintenance_requests", id);
+                await updateDoc(docRef, { timeSlot: slotVal });
+                showToast("Schedule time slot updated.");
+            } catch (error) {
+                console.error("Error updating time slot: ", error);
+            }
+        };
+
+        window.sendWhatsAppToStaff = function(id) {
+            const req = requests.find(r => r.id === id);
+            if (!req) return;
+
+            const staffName = req.assignedStaff;
+            let staffPhone = staffDirectory[staffName] || "";
+
+            if (!staffPhone || staffPhone.includes("000000")) {
+                const enteredNum = prompt(`Enter direct WhatsApp mobile number for ${staffName} (with country code, e.g. +27...):`, staffPhone);
+                if (enteredNum) {
+                    staffPhone = enteredNum;
+                    staffDirectory[staffName] = enteredNum;
+                } else {
+                    return;
+                }
+            }
+
+            const message = `Hi *${staffName}*, you have been allocated a new maintenance task at Serene Park Retirement Centre:%0A%0A` +
+                            `*Resident:* ${req.resident} (${req.room})%0A` +
+                            `*Category:* ${req.category}%0A` +
+                            `*Urgency:* ${req.urgency}%0A` +
+                            `*Scheduled Date:* ${req.scheduledDate || 'TBD'}%0A` +
+                            `*Time Slot:* ${req.timeSlot || 'Flexible'}%0A` +
+                            `*Description:* ${req.description}%0A%0A` +
+                            `Please attend to this assignment accordingly.`;
+
+            window.open(`https://api.whatsapp.com/send?phone=${staffPhone}&text=${message}`, '_blank');
+        };
+
+        window.deleteRequest = async function(id) {
+            if (confirm("Are you sure you want to delete this repair record?")) {
+                try {
+                    await deleteDoc(doc(db, "maintenance_requests", id));
+                    showToast("Request record removed.");
+                } catch (error) {
+                    console.error("Error deleting document: ", error);
+                }
+            }
+        };
+
+        window.openReportModal = function() {
+            document.getElementById('reportModal').classList.remove('hidden');
+            generateReport();
+        };
+
+        window.closeReportModal = function() {
+            document.getElementById('reportModal').classList.add('hidden');
+        };
+
+        window.generateReport = function() {
+            const period = document.getElementById('report-period').value;
+            const container = document.getElementById('report-content');
+            const now = new Date();
+
+            let filteredReqs = requests.filter(req => {
+                if (!req.timestamp) return true;
+                const reqDate = new Date(req.timestamp);
+                const diffDays = (now - reqDate) / (1000 * 60 * 60 * 24);
+
+                if (period === 'Daily') return diffDays <= 1;
+                if (period === 'Weekly') return diffDays <= 7;
+                if (period === 'Monthly') return diffDays <= 30;
+                if (period === 'YTD') return reqDate.getFullYear() === now.getFullYear();
+                return true;
+            });
+
+            const total = filteredReqs.length;
+            const pending = filteredReqs.filter(r => r.status === 'Pending').length;
+            const inProgress = filteredReqs.filter(r => r.status === 'In Progress').length;
+            const completed = filteredReqs.filter(r => r.status === 'Completed').length;
+
+            let periodTitle = "Year-to-Date (YTD 2026)";
+            if (period === 'Daily') periodTitle = "Daily Report (Today)";
+            else if (period === 'Weekly') periodTitle = "Weekly Report (Last 7 Days)";
+            else if (period === 'Monthly') periodTitle = "Monthly Report (Last 30 Days)";
+
+            container.innerHTML = `
+                <div class="border-b pb-4">
+                    <h4 class="text-xl font-bold text-slate-brand">Serene Park Retirement Centre</h4>
+                    <p class="text-sm text-slate-600 font-semibold">${periodTitle} — Generated on ${now.toLocaleDateString()}</p>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                        <span class="block text-xs font-bold text-slate-500 uppercase">Total Requests</span>
+                        <span class="text-2xl font-extrabold text-slate-brand">${total}</span>
+                    </div>
+                    <div class="bg-amber-50 p-4 rounded-xl border border-amber-200">
+                        <span class="block text-xs font-bold text-amber-600 uppercase">Pending</span>
+                        <span class="text-2xl font-extrabold text-amber-700">${pending}</span>
+                    </div>
+                    <div class="bg-sky-50 p-4 rounded-xl border border-sky-200">
+                        <span class="block text-xs font-bold text-sky-600 uppercase">In Progress</span>
+                        <span class="text-2xl font-extrabold text-sky-700">${inProgress}</span>
+                    </div>
+                    <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-200">
+                        <span class="block text-xs font-bold text-emerald-600 uppercase">Completed</span>
+                        <span class="text-2xl font-extrabold text-emerald-700">${completed}</span>
+                    </div>
+                </div>
+
+                <div>
+                    <h5 class="font-bold text-slate-700 mb-3">Itemized Repair Records (${filteredReqs.length})</h5>
+                    <div class="space-y-3 max-h-96 overflow-y-auto">
+                        ${filteredReqs.length === 0 ? '<p class="text-slate-500 text-sm italic">No records found for this period.</p>' : 
+                            filteredReqs.map(r => `
+                                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-sm space-y-1">
+                                    <div class="flex justify-between font-bold text-slate-800">
+                                        <span>${r.resident} (${r.room})</span>
+                                        <span class="text-teal-700">${r.category}</span>
+                                    </div>
+                                    <p class="text-slate-600">${r.description}</p>
+                                    <div class="flex justify-between text-xs text-slate-500 pt-1 border-t border-slate-200">
+                                        <span>Assigned: <strong>${r.assignedStaff || 'Unassigned'}</strong></span>
+                                        <span>Status: <strong class="text-slate-700">${r.status}</strong></span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                    </div>
+                </div>
+            `;
+        };
+
+        window.renderRequests = function() {
+            const container = document.getElementById('requests-container');
+            const filter = document.getElementById('status-filter').value;
+            updateBadgeCount();
+
+            const filtered = filter === 'All' ? requests : requests.filter(r => r.status === filter);
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="text-center py-12 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                    <i class="fa-solid fa-folder-open text-4xl text-slate-400 mb-3"></i>
+                    <p class="text-slate-600 font-semibold large-text">No maintenance requests found.</p>
+                </div>`;
+                return;
+            }
+
+            container.innerHTML = filtered.map(req => {
+                let urgencyColor = 'bg-slate-100 text-slate-700 border-slate-300';
+                if (req.urgency === 'Urgent') urgencyColor = 'bg-red-100 text-red-800 border-red-300';
+                else if (req.urgency === 'Medium') urgencyColor = 'bg-amber-100 text-amber-800 border-amber-300';
+
+                let staffListOptions = "";
+                const isGarden = req.category === "Gardens";
+                const activeStaffGroup = isGarden ? gardenStaff : maintenanceStaff;
+
+                activeStaffGroup.forEach(staff => {
+                    const selected = req.assignedStaff === staff ? 'selected' : '';
+                    staffListOptions += `<option value="${staff}" ${selected}>${staff} (${isGarden ? 'Gardens' : 'Maintenance'})</option>`;
+                });
+
+                let photosHtml = '';
+                if (req.photos && req.photos.length > 0) {
+                    photosHtml = `<div class="mt-3 flex flex-wrap gap-2">` + 
+                        req.photos.map(p => `<img src="${p}" class="w-16 h-16 object-cover rounded-lg border border-teal-400 shadow-sm cursor-pointer" onclick="window.open('${p}')">`).join('') + 
+                        `</div>`;
+                }
+
+                return `
+                    <div class="bg-slate-50 border-2 border-teal-100 rounded-2xl p-5 md:p-6 shadow-sm space-y-4">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 border-b border-slate-200 pb-3">
+                            <div>
+                                <span class="font-bold text-xl text-slate-brand">${req.resident}</span>
+                                <span class="text-slate-500 text-base ml-2">(${req.room})</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="px-3 py-1 rounded-full text-sm font-bold border ${urgencyColor}">${req.urgency}</span>
+                                <span class="px-3 py-1 rounded-full text-sm font-bold bg-teal-100 text-teal-900 border border-teal-300">${req.category}</span>
+                            </div>
+                        </div>
+
+                        <p class="text-slate-700 large-text bg-white p-4 rounded-xl border border-slate-200">${req.description}</p>
+                        
+                        ${photosHtml}
+
+                        <!-- Scheduling & Allocation Controls -->
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 pt-2 items-center bg-teal-50/50 p-4 rounded-xl border border-teal-100">
+                            <div>
+                                <span class="block text-xs font-bold text-slate-500 uppercase">Assigned Staff:</span>
+                                <select onchange="updateAssignedStaff('${req.id}', this.value)" class="mt-1 bg-white border-2 border-teal-300 rounded-xl px-3 py-1.5 text-sm font-bold text-slate-800 focus:border-teal-brand focus:outline-none w-full">
+                                    ${staffListOptions}
+                                </select>
+                            </div>
+                            <div>
+                                <span class="block text-xs font-bold text-slate-500 uppercase">Scheduled Date:</span>
+                                <input type="date" value="${req.scheduledDate || ''}" onchange="updateScheduledDate('${req.id}', this.value)" class="mt-1 bg-white border-2 border-teal-300 rounded-xl px-3 py-1.5 text-sm font-bold text-slate-800 focus:border-teal-brand focus:outline-none w-full">
+                            </div>
+                            <div>
+                                <span class="block text-xs font-bold text-slate-500 uppercase">Time Slot:</span>
+                                <select onchange="updateTimeSlot('${req.id}', this.value)" class="mt-1 bg-white border-2 border-teal-300 rounded-xl px-3 py-1.5 text-sm font-bold text-slate-800 focus:border-teal-brand focus:outline-none w-full">
+                                    <option value="Morning (08:00 - 12:00)" ${req.timeSlot === 'Morning (08:00 - 12:00)' ? 'selected' : ''}>Morning (08:00 - 12:00)</option>
+                                    <option value="Afternoon (13:00 - 16:30)" ${req.timeSlot === 'Afternoon (13:00 - 16:30)' ? 'selected' : ''}>Afternoon (13:00 - 16:30)</option>
+                                    <option value="Urgent Immediate" ${req.timeSlot === 'Urgent Immediate' ? 'selected' : ''}>Urgent / Immediate</option>
+                                </select>
+                            </div>
+                            <div>
+                                <span class="block text-xs font-bold text-slate-500 uppercase">Status:</span>
+                                <select onchange="updateStatus('${req.id}', this.value)" class="mt-1 bg-white border-2 border-teal-300 rounded-xl px-3 py-1.5 text-sm font-bold text-slate-800 focus:border-teal-brand focus:outline-none w-full">
+                                    <option value="Pending" ${req.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                                    <option value="In Progress" ${req.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
+                                    <option value="Completed" ${req.status === 'Completed' ? 'selected' : ''}>Completed</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col md:flex-row justify-between items-center pt-2 border-t border-slate-200">
+                            <span class="text-xs text-slate-500 font-medium"><i class="fa-regular fa-clock mr-1"></i> Submitted: ${req.date}</span>
+                            <div class="flex items-center space-x-2 mt-3 md:mt-0">
+                                <button onclick="sendWhatsAppToStaff('${req.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-sm flex items-center space-x-2 transition shadow">
+                                    <i class="fa-brands fa-whatsapp text-lg"></i>
+                                    <span>Send WhatsApp to ${req.assignedStaff}</span>
+                                </button>
+                                <button onclick="deleteRequest('${req.id}')" class="text-red-500 hover:text-red-700 p-2 rounded-xl border border-red-200 hover:bg-red-50 transition" title="Delete Request">
+                                    <i class="fa-solid fa-trash-can text-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        };
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = message;
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 4000);
+        }
+
+        window.openShareModal = function() {
+            const currentUrl = window.location.href;
+            document.getElementById('share-link').value = currentUrl;
+            document.getElementById('whatsapp-share').href = `https://api.whatsapp.com/send?text=${encodeURIComponent("Access the Serene Park Retirement Centre Maintenance Portal here: " + currentUrl)}`;
+            document.getElementById('email-share').href = `mailto:?subject=${encodeURIComponent("Serene Park Maintenance Portal")}&body=${encodeURIComponent("Please use the following link to access the Serene Park Maintenance Portal: " + currentUrl)}`;
+            document.getElementById('shareModal').classList.remove('hidden');
+        };
+
+        window.closeShareModal = function() {
+            document.getElementById('shareModal').classList.add('hidden');
+        };
+
+        window.copyShareLink = function() {
+            const linkInput = document.getElementById('share-link');
+            linkInput.select();
+            navigator.clipboard.writeText(linkInput.value);
+            showToast("Link copied to clipboard!");
+        };
+
+        // Initialize listener on startup
+        initFirebaseListener();
+    </script>
+</body>
+</html>
