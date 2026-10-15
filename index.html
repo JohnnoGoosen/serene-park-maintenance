@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Serene Park Retirement Centre - Maintenance Portal</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for accessible icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // Serene Park Retirement Centre Live Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDExSKwrq2ZUKVoXMh1wRBA1jXne5cbQt8",
+            authDomain: "fir-p-r-c-maintenance-app.firebaseapp.com",
+            projectId: "fir-p-r-c-maintenance-app",
+            storageBucket: "fir-p-r-c-maintenance-app.firebasestorage.app",
+            messagingSenderId: "487761719426",
+            appId: "1:487761719426:web:df2a4b023e699e69d4449b"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Expose Firebase variables globally for the application
+        window.db = db;
+        window.collection = collection;
+        window.addDoc = addDoc;
+        window.getDocs = getDocs;
+        window.doc = doc;
+        window.updateDoc = updateDoc;
+        window.deleteDoc = deleteDoc;
+        window.onSnapshot = onSnapshot;
+        window.query = query;
+        window.orderBy = orderBy;
+
+        window.initFirebaseListener();
+    </script>
+    <style>
+        .large-text { font-size: 1.125rem; }
+        .bg-teal-brand { background-color: #55c4d0; }
+        .text-teal-brand { color: #55c4d0; }
+        .border-teal-brand { border-color: #55c4d0; }
+        .bg-slate-brand { background-color: #3f6873; }
+        .text-slate-brand { color: #3f6873; }
+        .border-slate-brand { border-color: #3f6873; }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #print-report-modal, #print-report-modal * {
+                visibility: visible;
+            }
+            #print-report-modal {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                margin: 0;
+                padding: 20px;
+                background: white !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-cyan-50/40 text-slate-800 min-h-screen flex flex-col font-sans">
+
+    <!-- Toast Notification Banner -->
+    <div id="toast" class="fixed top-4 right-4 z-50 hidden max-w-md bg-teal-600 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center space-x-4 border-2 border-teal-300 transition-all duration-300">
+        <i class="fa-solid fa-circle-check text-2xl"></i>
+        <div>
+            <h4 class="font-bold text-lg">Notification Sent</h4>
+            <p id="toast-msg" class="text-sm opacity-95">Staff member has been notified successfully.</p>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="bg-slate-brand text-white shadow-md py-5 px-6 border-b-4 border-teal-brand">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-4">
+                <div class="bg-white p-2 rounded-2xl shadow-md border-2 border-teal-brand">
+                    <!-- Inline SVG Serene Park Bird Logo -->
+                    <svg class="w-12 h-12" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="50" cy="50" r="42" stroke="#3f6873" stroke-width="10" opacity="0.3"/>
+                        <path d="M20 65 C 30 85, 70 85, 80 65 C 65 75, 35 75, 20 65 Z" fill="#55c4d0"/>
+                        <path d="M35 45 C 50 55, 65 45, 75 35 C 65 25, 45 25, 35 45 Z" fill="#55c4d0"/>
+                        <circle cx="68" cy="38" r="3" fill="#3f6873"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight text-teal-brand">Serene Park</h1>
+                    <p class="text-white text-base font-semibold tracking-wide">Retirement Centre — Cloud Maintenance Portal</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-3">
+                <button onclick="openShareModal()" class="bg-teal-brand hover:bg-teal-500 text-slate-900 font-bold px-4 py-2.5 rounded-xl shadow transition flex items-center space-x-2 text-base">
+                    <i class="fa-solid fa-share-nodes"></i>
+                    <span>Share App</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Navigation Tabs -->
+    <nav class="bg-white shadow-inner border-b border-teal-100 py-3 px-6">
+        <div class="max-w-6xl mx-auto flex justify-center space-x-4 md:space-x-8">
+            <button onclick="switchTab('resident')" id="nav-resident" class="px-6 py-3 rounded-xl font-bold text-lg transition flex items-center space-x-2 bg-slate-brand text-white shadow">
+                <i class="fa-solid fa-user-pen"></i>
+                <span>Resident Portal (Submit Request)</span>
+            </button>
+            <button onclick="promptStaffAccess()" id="nav-staff" class="px-6 py-3 rounded-xl font-bold text-lg transition flex items-center space-x-2 bg-slate-100 text-slate-600 hover:bg-slate-200 border-2 border-dashed border-slate-300">
+                <i class="fa-solid fa-lock text-slate-500"></i>
+                <span>Staff Dashboard & Reports</span>
+                <span id="pending-badge" class="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full ml-1">0</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content Container -->
+    <main class="max-w-4xl mx-auto w-full p-4 md:p-8 flex-grow">
+
+        <!-- RESIDENT PORTAL VIEW -->
+        <section id="view-resident" class="bg-white rounded-3xl shadow-xl p-6 md:p-10 border border-teal-100">
+            <div class="border-b border-teal-100 pb-5 mb-6">
+                <h2 class="text-2xl font-bold text-slate-brand flex items-center space-x-3">
+                    <i class="fa-solid fa-screwdriver-wrench text-teal-brand text-3xl"></i>
+                    <span>Request a Maintenance or Garden Repair</span>
+                </h2>
+                <p class="text-slate-600 mt-1 large-text">Please fill out the details below. Our team will respond promptly.</p>
+            </div>
+
+            <form id="maintenance-form" onsubmit="submitRequest(event)" class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-slate-700 font-bold mb-2 large-text" for="resident-name">Resident Name / Cottage:</label>
+                        <input type="text" id="resident-name" required placeholder="e.g., Margaret Smith (Cottage 14)" class="w-full px-4 py-3 rounded-xl border-2 border-slate-300 focus:border-teal-brand focus:outline-none large-text bg-slate-50">
+                    </div>
+                    <div>
+                        <label class="block text-slate-700 font-bold mb-2 large-text" for="room-number">Room / Unit Number:</label>
+                        <input type="text" id="room-number" required placeholder="e.g., Unit 204" class="w-full px-4 py-3 rounded-xl border-2 border-slate-300 focus:border-teal-brand focus:outline-none large-text bg-slate-50">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-slate-700 font-bold mb-2 large-text" for="category">Category / Department:</label>
+                        <select id="category" class="w-full px-4 py-3 rounded-xl border-2 border-slate-300 focus:border-teal-brand focus:outline-none large-text bg-slate-50">
+                            <optgroup label="Maintenance">
+                                <option value="Plumbing">Plumbing (Leaks, Taps, Toilets)</option>
+                                <option value="Electrical">Electrical (Lights, Power Outlets)</option>
+                                <option value="Appliances">Appliances (Stove, Fridge, Heater)</option>
+                                <option value="Carpentry">Carpentry (Doors, Windows, Cupboards)</option>
+                                <option value="General Maintenance">General Maintenance / Other</option>
+                            </optgroup>
+                            <optgroup label="Gardens">
+                                <option value="Gardens">Gardens & Grounds (Trees, Lawns, Pathways)</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-700 font-bold mb-2 large-text" for="urgency">Urgency Level:</label>
+                        <select id="urgency" class="w-full px-4 py-3 rounded-xl border-2 border-slate-300 focus:border-teal-brand focus:outline-none large-text bg-slate-50">
+                            <option value="Low">Low - Can be fixed within a few days</option>
+                            <option value="Medium" selected>Medium - Needs attention soon</option>
+                            <option value="Urgent">Urgent - Immediate safety/living concern</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-slate-700 font-bold mb-2 large-text" for="description">Problem Description:</label>
+                    <textarea id="description" rows="4" required placeholder="Please describe what is broken or needs repairing in detail..." class="w-full px-4 py-3 rounded-xl border-2 border-slate-300 focus:border-teal-brand focus:outline-none large-text bg-slate-50"></textarea>
+                </div>
+
+                <!-- Upload Photo/s -->
+                <div>
+                    <label class="block text-slate-700 font-bold mb-2 large-text" for="photos">Upload Photo/s (Optional):</label>
+                    <input type="file" id="photos" accept="image/*" multiple onchange="previewImages(event)" class="w-full px-4 py-3 rounded-
