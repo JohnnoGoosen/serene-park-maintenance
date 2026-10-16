@@ -90,7 +90,7 @@
                 <i class="fa-solid fa-user-pen"></i>
                 <span>Resident Portal (Submit Request)</span>
             </button>
-            <button onclick="promptStaffAccess()" id="nav-staff" class="px-6 py-3 rounded-xl font-bold text-lg transition flex items-center space-x-2 bg-slate-100 text-slate-600 hover:bg-slate-200 border-2 border-dashed border-slate-300">
+            <button onclick="promptStaffAccess()" id="nav-staff-btn" class="px-6 py-3 rounded-xl font-bold text-lg transition flex items-center space-x-2 bg-slate-100 text-slate-600 hover:bg-slate-200 border-2 border-dashed border-slate-300">
                 <i class="fa-solid fa-lock text-slate-500"></i>
                 <span>Staff Dashboard & Reports</span>
                 <span id="pending-badge" class="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full ml-1">0</span>
@@ -299,6 +299,56 @@
         <p class="text-sm md:text-base">&copy; 2026 Serene Park Retirement Centre. All rights reserved. Cloud Real-Time Enabled.</p>
     </footer>
 
+    <!-- Direct Global Functions Setup (Guarantees immediate click accessibility) -->
+    <script>
+        window.STAFF_PIN = "1967";
+        window.isStaffUnlocked = false;
+
+        window.promptStaffAccess = function() {
+            if (window.isStaffUnlocked) {
+                if (typeof window.switchTab === 'function') window.switchTab('staff');
+                return;
+            }
+            const modal = document.getElementById('pinModal');
+            const pinInput = document.getElementById('pin-input');
+            const pinError = document.getElementById('pin-error');
+            if (pinInput) pinInput.value = '';
+            if (pinError) pinError.classList.add('hidden');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+            if (pinInput) setTimeout(() => pinInput.focus(), 150);
+        };
+
+        window.closePinModal = function() {
+            const modal = document.getElementById('pinModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        };
+
+        window.verifyPin = function() {
+            const pinInput = document.getElementById('pin-input');
+            const pinError = document.getElementById('pin-error');
+            const enteredPin = pinInput ? pinInput.value.trim() : '';
+
+            if (enteredPin === window.STAFF_PIN) {
+                window.isStaffUnlocked = true;
+                window.closePinModal();
+                if (typeof window.switchTab === 'function') {
+                    window.switchTab('staff');
+                }
+                if (typeof window.showToast === 'function') {
+                    window.showToast("Staff Dashboard unlocked successfully.");
+                }
+            } else {
+                if (pinError) pinError.classList.remove('hidden');
+            }
+        };
+    </script>
+
     <!-- Firebase Realtime Database & Application Logic -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -316,9 +366,6 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
-
-        const STAFF_PIN = "1967";
-        let isStaffUnlocked = false;
 
         const staffDirectory = {
             "Vusi": "+27000000001",
@@ -342,7 +389,7 @@
         let requests = [];
         let currentImagePreviews = [];
 
-        // Image Compressor (Downscales mobile camera photos)
+        // Image Compressor
         function compressImage(file, maxWidth = 600, quality = 0.5) {
             return new Promise((resolve) => {
                 const reader = new FileReader();
@@ -382,7 +429,8 @@
             try {
                 const reqsRef = ref(db, "maintenance_requests");
                 onValue(reqsRef, (snapshot) => {
-                    document.getElementById('firebase-error-banner').classList.add('hidden');
+                    const errBanner = document.getElementById('firebase-error-banner');
+                    if (errBanner) errBanner.classList.add('hidden');
                     requests = [];
                     const data = snapshot.val();
                     if (data) {
@@ -399,8 +447,10 @@
                     updateBadgeCount();
                 }, (error) => {
                     console.error("Database access error: ", error);
-                    document.getElementById('firebase-error-text').innerText = "Database connection error: " + error.message + ". Please verify Realtime Database Security Rules.";
-                    document.getElementById('firebase-error-banner').classList.remove('hidden');
+                    const errText = document.getElementById('firebase-error-text');
+                    const errBanner = document.getElementById('firebase-error-banner');
+                    if (errText) errText.innerText = "Database connection error: " + error.message;
+                    if (errBanner) errBanner.classList.remove('hidden');
                 });
             } catch (err) {
                 console.error("Listener error: ", err);
@@ -413,40 +463,8 @@
             if (badge) badge.innerText = pendingCount;
         }
 
-        // Navigation & PIN Modal Logic
-        window.promptStaffAccess = function() {
-            if (isStaffUnlocked) {
-                switchTab('staff');
-                return;
-            }
-            document.getElementById('pin-input').value = '';
-            document.getElementById('pin-error').classList.add('hidden');
-            document.getElementById('pinModal').classList.remove('hidden');
-            setTimeout(() => document.getElementById('pin-input').focus(), 100);
-        };
-
-        window.closePinModal = function() {
-            document.getElementById('pinModal').classList.add('hidden');
-        };
-
-        window.verifyPin = function() {
-            const enteredPin = document.getElementById('pin-input').value;
-            if (enteredPin === STAFF_PIN) {
-                isStaffUnlocked = true;
-                closePinModal();
-                switchTab('staff');
-                showToast("Staff Dashboard unlocked successfully.");
-            } else {
-                document.getElementById('pin-error').classList.remove('hidden');
-            }
-        };
-
-        document.getElementById('pin-input').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') verifyPin();
-        });
-
         window.lockStaffDashboard = function() {
-            isStaffUnlocked = false;
+            window.isStaffUnlocked = false;
             switchTab('resident');
             showToast("Staff dashboard locked.");
         };
@@ -455,7 +473,7 @@
             const residentView = document.getElementById('view-resident');
             const staffView = document.getElementById('view-staff');
             const navResident = document.getElementById('nav-resident');
-            const navStaff = document.getElementById('nav-staff');
+            const navStaff = document.getElementById('nav-staff-btn');
 
             if (tab === 'resident') {
                 residentView.classList.remove('hidden');
@@ -463,8 +481,8 @@
                 navResident.className = "px-6 py-3 rounded-xl font-bold text-lg transition flex items-center space-x-2 bg-slate-brand text-white shadow";
                 navStaff.className = "px-6 py-3 rounded-xl font-bold text-lg transition flex items-center space-x-2 bg-slate-100 text-slate-600 hover:bg-slate-200 border-2 border-dashed border-slate-300";
             } else {
-                if (!isStaffUnlocked) {
-                    promptStaffAccess();
+                if (!window.isStaffUnlocked) {
+                    window.promptStaffAccess();
                     return;
                 }
                 residentView.classList.add('hidden');
@@ -528,7 +546,7 @@
                 currentImagePreviews = [];
             } catch (error) {
                 console.error("Error adding record: ", error);
-                alert("SUBMISSION FAILED:\n\n" + error.message + "\n\nPlease ensure Realtime Database Rules are set to public in Firebase Console.");
+                alert("SUBMISSION FAILED:\n\n" + error.message);
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = `<i class="fa-solid fa-paper-plane"></i><span>Submit Repair Request</span>`;
@@ -590,246 +608,4 @@
                 }
             }
 
-            const message = `Hi *${staffName}*, you have been allocated a new maintenance task at Serene Park Retirement Centre:%0A%0A` +
-                            `*Resident:* ${req.resident} (${req.room})%0A` +
-                            `*Category:* ${req.category}%0A` +
-                            `*Urgency:* ${req.urgency}%0A` +
-                            `*Scheduled Date:* ${req.scheduledDate || 'TBD'}%0A` +
-                            `*Time Slot:* ${req.timeSlot || 'Flexible'}%0A` +
-                            `*Description:* ${req.description}%0A%0A` +
-                            `Please attend to this assignment accordingly.`;
-
-            window.open(`https://api.whatsapp.com/send?phone=${staffPhone}&text=${message}`, '_blank');
-        };
-
-        window.deleteRequest = async function(id) {
-            if (confirm("Are you sure you want to delete this repair record?")) {
-                try {
-                    await remove(ref(db, `maintenance_requests/${id}`));
-                    showToast("Request record removed.");
-                } catch (error) {
-                    console.error("Error deleting record: ", error);
-                    alert("Delete failed: " + error.message);
-                }
-            }
-        };
-
-        window.openReportModal = function() {
-            document.getElementById('reportModal').classList.remove('hidden');
-            generateReport();
-        };
-
-        window.closeReportModal = function() {
-            document.getElementById('reportModal').classList.add('hidden');
-        };
-
-        window.generateReport = function() {
-            const period = document.getElementById('report-period').value;
-            const container = document.getElementById('report-content');
-            const now = new Date();
-
-            let filteredReqs = requests.filter(req => {
-                const reqDate = getReqDate(req);
-                const diffMs = now.getTime() - reqDate.getTime();
-                const diffDays = diffMs / (1000 * 60 * 60 * 24);
-
-                if (period === 'Daily') return diffDays <= 1.5 && diffDays >= -0.5;
-                if (period === 'Weekly') return diffDays <= 7.5 && diffDays >= -0.5;
-                if (period === 'Monthly') return diffDays <= 31.5 && diffDays >= -0.5;
-                if (period === 'YTD') return reqDate.getFullYear() === now.getFullYear();
-                return true;
-            });
-
-            const total = filteredReqs.length;
-            const pending = filteredReqs.filter(r => (r.status || '').toLowerCase().trim() === 'pending').length;
-            const inProgress = filteredReqs.filter(r => (r.status || '').toLowerCase().trim() === 'in progress').length;
-            const completed = filteredReqs.filter(r => (r.status || '').toLowerCase().trim() === 'completed').length;
-
-            let periodTitle = "Year-to-Date (YTD 2026)";
-            if (period === 'Daily') periodTitle = "Daily Report (Today)";
-            else if (period === 'Weekly') periodTitle = "Weekly Report (Last 7 Days)";
-            else if (period === 'Monthly') periodTitle = "Monthly Report (Last 30 Days)";
-
-            container.innerHTML = `
-                <div class="border-b pb-4">
-                    <h4 class="text-xl font-bold text-slate-brand">Serene Park Retirement Centre</h4>
-                    <p class="text-sm text-slate-600 font-semibold">${periodTitle} — Generated on ${now.toLocaleDateString()}</p>
-                </div>
-
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                        <span class="block text-xs font-bold text-slate-500 uppercase">Total Requests</span>
-                        <span class="text-2xl font-extrabold text-slate-brand">${total}</span>
-                    </div>
-                    <div class="bg-amber-50 p-4 rounded-xl border border-amber-200">
-                        <span class="block text-xs font-bold text-amber-600 uppercase">Pending</span>
-                        <span class="text-2xl font-extrabold text-amber-700">${pending}</span>
-                    </div>
-                    <div class="bg-sky-50 p-4 rounded-xl border border-sky-200">
-                        <span class="block text-xs font-bold text-sky-600 uppercase">In Progress</span>
-                        <span class="text-2xl font-extrabold text-sky-700">${inProgress}</span>
-                    </div>
-                    <div class="bg-emerald-50 p-4 rounded-xl border border-emerald-200">
-                        <span class="block text-xs font-bold text-emerald-600 uppercase">Completed</span>
-                        <span class="text-2xl font-extrabold text-emerald-700">${completed}</span>
-                    </div>
-                </div>
-
-                <div>
-                    <h5 class="font-bold text-slate-700 mb-3">Itemized Repair Records (${filteredReqs.length})</h5>
-                    <div class="space-y-3 max-h-96 overflow-y-auto">
-                        ${filteredReqs.length === 0 ? '<p class="text-slate-500 text-sm italic">No records found for this period.</p>' : 
-                            filteredReqs.map(r => `
-                                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-sm space-y-1">
-                                    <div class="flex justify-between font-bold text-slate-800">
-                                        <span>${r.resident} (${r.room})</span>
-                                        <span class="text-teal-700">${r.category}</span>
-                                    </div>
-                                    <p class="text-slate-600">${r.description}</p>
-                                    <div class="flex justify-between text-xs text-slate-500 pt-1 border-t border-slate-200">
-                                        <span>Assigned: <strong>${r.assignedStaff || 'Unassigned'}</strong></span>
-                                        <span>Status: <strong class="text-slate-700">${r.status || 'Pending'}</strong></span>
-                                    </div>
-                                </div>
-                            `).join('')}
-                    </div>
-                </div>
-            `;
-        };
-
-        window.renderRequests = function() {
-            const container = document.getElementById('requests-container');
-            const filter = document.getElementById('status-filter').value;
-            updateBadgeCount();
-
-            const filtered = filter === 'All' ? requests : requests.filter(r => (r.status || '').toLowerCase().trim() === filter.toLowerCase().trim());
-
-            if (filtered.length === 0) {
-                container.innerHTML = `<div class="text-center py-12 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
-                    <i class="fa-solid fa-folder-open text-4xl text-slate-400 mb-3"></i>
-                    <p class="text-slate-600 font-semibold large-text">No maintenance requests found for this filter.</p>
-                </div>`;
-                return;
-            }
-
-            container.innerHTML = filtered.map(req => {
-                let urgencyColor = 'bg-slate-100 text-slate-700 border-slate-300';
-                if (req.urgency === 'Urgent') urgencyColor = 'bg-red-100 text-red-800 border-red-300';
-                else if (req.urgency === 'Medium') urgencyColor = 'bg-amber-100 text-amber-800 border-amber-300';
-
-                let staffListOptions = "";
-                const isGarden = req.category === "Gardens";
-                let activeStaffGroup = isGarden ? [...gardenStaff] : [...maintenanceStaff];
-
-                if (req.assignedStaff && !activeStaffGroup.includes(req.assignedStaff)) {
-                    activeStaffGroup.push(req.assignedStaff);
-                }
-
-                activeStaffGroup.forEach(staff => {
-                    const selected = req.assignedStaff === staff ? 'selected' : '';
-                    staffListOptions += `<option value="${staff}" ${selected}>${staff}</option>`;
-                });
-
-                let photosHtml = '';
-                if (req.photos && req.photos.length > 0) {
-                    photosHtml = `<div class="mt-3 flex flex-wrap gap-2">` + 
-                        req.photos.map(p => `<img src="${p}" class="w-16 h-16 object-cover rounded-lg border border-teal-400 shadow-sm cursor-pointer" onclick="window.open('${p}')">`).join('') + 
-                        `</div>`;
-                }
-
-                return `
-                    <div class="bg-slate-50 border-2 border-teal-100 rounded-2xl p-5 md:p-6 shadow-sm space-y-4">
-                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 border-b border-slate-200 pb-3">
-                            <div>
-                                <span class="font-bold text-xl text-slate-brand">${req.resident}</span>
-                                <span class="text-slate-500 text-base ml-2">(${req.room})</span>
-                            </div>
-                            <div class="flex items-center space-x-2">
-                                <span class="px-3 py-1 rounded-full text-sm font-bold border ${urgencyColor}">${req.urgency}</span>
-                                <span class="px-3 py-1 rounded-full text-sm font-bold bg-teal-100 text-teal-900 border border-teal-300">${req.category}</span>
-                            </div>
-                        </div>
-
-                        <p class="text-slate-700 large-text bg-white p-4 rounded-xl border border-slate-200">${req.description}</p>
-                        
-                        ${photosHtml}
-
-                        <!-- Scheduling & Allocation Controls -->
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 pt-2 items-center bg-teal-50/50 p-4 rounded-xl border border-teal-100">
-                            <div>
-                                <span class="block text-xs font-bold text-slate-500 uppercase">Assigned Staff:</span>
-                                <select onchange="updateAssignedStaff('${req.id}', this.value)" class="mt-1 bg-white border-2 border-teal-300 rounded-xl px-3 py-1.5 text-sm font-bold text-slate-800 focus:border-teal-brand focus:outline-none w-full">
-                                    ${staffListOptions}
-                                </select>
-                            </div>
-                            <div>
-                                <span class="block text-xs font-bold text-slate-500 uppercase">Scheduled Date:</span>
-                                <input type="date" value="${req.scheduledDate || ''}" onchange="updateScheduledDate('${req.id}', this.value)" class="mt-1 bg-white border-2 border-teal-300 rounded-xl px-3 py-1.5 text-sm font-bold text-slate-800 focus:border-teal-brand focus:outline-none w-full">
-                            </div>
-                            <div>
-                                <span class="block text-xs font-bold text-slate-500 uppercase">Time Slot:</span>
-                                <select onchange="updateTimeSlot('${req.id}', this.value)" class="mt-1 bg-white border-2 border-teal-300 rounded-xl px-3 py-1.5 text-sm font-bold text-slate-800 focus:border-teal-brand focus:outline-none w-full">
-                                    <option value="Morning (08:00 - 12:00)" ${req.timeSlot === 'Morning (08:00 - 12:00)' ? 'selected' : ''}>Morning (08:00 - 12:00)</option>
-                                    <option value="Afternoon (13:00 - 16:30)" ${req.timeSlot === 'Afternoon (13:00 - 16:30)' ? 'selected' : ''}>Afternoon (13:00 - 16:30)</option>
-                                    <option value="Urgent Immediate" ${req.timeSlot === 'Urgent Immediate' ? 'selected' : ''}>Urgent / Immediate</option>
-                                </select>
-                            </div>
-                            <div>
-                                <span class="block text-xs font-bold text-slate-500 uppercase">Status:</span>
-                                <select onchange="updateStatus('${req.id}', this.value)" class="mt-1 bg-white border-2 border-teal-300 rounded-xl px-3 py-1.5 text-sm font-bold text-slate-800 focus:border-teal-brand focus:outline-none w-full">
-                                    <option value="Pending" ${(req.status || '') === 'Pending' ? 'selected' : ''}>Pending</option>
-                                    <option value="In Progress" ${(req.status || '') === 'In Progress' ? 'selected' : ''}>In Progress</option>
-                                    <option value="Completed" ${(req.status || '') === 'Completed' ? 'selected' : ''}>Completed</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="flex flex-col md:flex-row justify-between items-center pt-2 border-t border-slate-200">
-                            <span class="text-xs text-slate-500 font-medium"><i class="fa-regular fa-clock mr-1"></i> Submitted: ${req.date}</span>
-                            <div class="flex items-center space-x-2 mt-3 md:mt-0">
-                                <button onclick="sendWhatsAppToStaff('${req.id}')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-sm flex items-center space-x-2 transition shadow">
-                                    <i class="fa-brands fa-whatsapp text-lg"></i>
-                                    <span>Send WhatsApp to ${req.assignedStaff}</span>
-                                </button>
-                                <button onclick="deleteRequest('${req.id}')" class="text-red-500 hover:text-red-700 p-2 rounded-xl border border-red-200 hover:bg-red-50 transition" title="Delete Request">
-                                    <i class="fa-solid fa-trash-can text-lg"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        };
-
-        function showToast(message) {
-            const toast = document.getElementById('toast');
-            document.getElementById('toast-msg').innerText = message;
-            toast.classList.remove('hidden');
-            setTimeout(() => {
-                toast.classList.add('hidden');
-            }, 4000);
-        }
-
-        window.openShareModal = function() {
-            const currentUrl = window.location.href;
-            document.getElementById('share-link').value = currentUrl;
-            document.getElementById('whatsapp-share').href = `https://api.whatsapp.com/send?text=${encodeURIComponent("Access the Serene Park Retirement Centre Maintenance Portal here: " + currentUrl)}`;
-            document.getElementById('email-share').href = `mailto:?subject=${encodeURIComponent("Serene Park Maintenance Portal")}&body=${encodeURIComponent("Please use the following link to access the Serene Park Maintenance Portal: " + currentUrl)}`;
-            document.getElementById('shareModal').classList.remove('hidden');
-        };
-
-        window.closeShareModal = function() {
-            document.getElementById('shareModal').classList.add('hidden');
-        };
-
-        window.copyShareLink = function() {
-            const linkInput = document.getElementById('share-link');
-            linkInput.select();
-            navigator.clipboard.writeText(linkInput.value);
-            showToast("Link copied to clipboard!");
-        };
-
-        initFirebaseListener();
-    </script>
-</body>
-</html>
+            const message = `Hi *${staffName}*, you have been allocated a new maintenance task at Serene Park Retirement Centre:%0
